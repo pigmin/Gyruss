@@ -1,23 +1,28 @@
 import { GlobalManager } from "./globalmanager";
 
+import music0Url from "../assets/musics/Sky - Toccata (Video).mp3";
+
 import fireSoundUrl from "../assets/sounds/Arkanoid SFX (3).wav";
+import { AssetsManager, Sound } from "@babylonjs/core";
 
-let SoundsFX = Object.freeze({
-    FIRE: 7,
-  })
-  
-
-  
-
-export const Musics = Object.freeze({
-    START_MUSIC: 0,
-    MENU_MUSIC: 10,
-    LEVEL1_MUSIC: 20,
-});
 
 class SoundManager {
   static name = "SoundManager";
+
+  
+    SoundsFX = Object.freeze({
+        FIRE: 7,
+    })
     
+
+    
+
+    Musics = Object.freeze({
+        START_MUSIC: 0,
+        MENU_MUSIC: 10,
+        LEVEL1_MUSIC: 20,
+    });
+
   #soundsFX = [];
   #musics = [];
 
@@ -29,7 +34,7 @@ class SoundManager {
 
   }
 
-  init() {
+  async init() {
     await this.loadAssets();
   }
 
@@ -40,20 +45,22 @@ class SoundManager {
 
   
   playSound(soundIndex) {
-    if (soundIndex > 0 && soundIndex < this.#soundsFX.length)
+    if (soundIndex >= 0 && soundIndex < this.#soundsFX.length)
         this.#soundsFX[soundIndex].play();
   }
 
   playMusic(musicIndex) {
-
+    if (musicIndex >= 0 && musicIndex < this.#musics.length)
+        this.#musics[musicIndex].play();
   }
+
   loadAssets() {
     return new Promise((resolve) => {
 
-
-
         // Asset manager for loading texture and particle system
         let assetsManager = new AssetsManager(GlobalManager.scene);
+
+        const music0Data = assetsManager.addBinaryFileTask("music0", music0Url);
         const fireSoundData = assetsManager.addBinaryFileTask("fireSound", fireSoundUrl);
 
         // load all tasks
@@ -63,11 +70,9 @@ class SoundManager {
         assetsManager.onFinish = (tasks) => {
             console.log("tasks successful", tasks);
 
-            // prepare to parse particle system files
+            this.#musics[this.Musics.START_MUSIC] = new Sound("music0", music0Data.data, GlobalManager.scene, undefined, { loop: true, autoplay: false, volume: 0.4 });
 
-            this.#soundsFX[SoundsFX.FIRE] = new Sound("fireSound", fireSoundData.data, GlobalManager.scene);
-
-
+            this.#soundsFX[this.SoundsFX.FIRE] = new Sound("fireSound", fireSoundData.data, GlobalManager.scene);
 
             resolve(true);
         }

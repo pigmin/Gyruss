@@ -21,7 +21,6 @@ import "@babylonjs/loaders/glTF";
 
 
 
-import musicUrl1 from "../assets/musics/Sky - Toccata (Video).mp3";
 
 import envfileUrl from "../assets/env/environment.env";
 import starFieldGlb from "../assets/gltf/starsGeo.glb";
@@ -35,6 +34,7 @@ import * as constants from "./constants";
 import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
 import {Valkyrie} from "./valkyrie";
+import { SoundManager } from "./soundmanager";
 
 //const StartButtonMeshTarget = "panel_plate.001_140";
 
@@ -184,7 +184,8 @@ class Gyruss {
     //GlobalManager.shadowGenerator.usePercentageCloserFiltering = true;
     GlobalManager.shadowGenerator.setDarkness(0.4);
 
-    
+    await SoundManager.init();
+
     await this.createMaterials();
     await this.loadMeshes();
     await this.loadAssets();
@@ -192,7 +193,8 @@ class Gyruss {
     GlobalManager.valkyrie = new Valkyrie(0, -0.25, 0.25);
     await GlobalManager.valkyrie.init();
 
-    this.#musics[0] = new Sound("music0", musicUrl1, GlobalManager.scene, null, { loop: true, autoplay: true, volume: 0.4 });
+
+    
     /*  this.#musics[1] = new Sound("music1", musicUrl2, GlobalManager.scene, null, { loop: true, autoplay: false });
       this.#musics[2] = new Sound("music2", musicUrl3, GlobalManager.scene, null, { loop: true, autoplay: false });
       this.#musics[3] = new Sound("music3", musicUrl4, GlobalManager.scene, null, { loop: true, autoplay: false });
@@ -209,6 +211,7 @@ class Gyruss {
     changeGameState(States.STATE_PRE_INTRO);
     this.launchCreditsAnimation(() => {
       this.#creditsUI.rootContainer.isVisible = false;
+      SoundManager.playMusic(SoundManager.Musics.START_MUSIC);
     });
     //this.launchPreIntroAnimation(() => {
     changeGameState(States.STATE_MENU);
