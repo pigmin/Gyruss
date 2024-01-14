@@ -1,7 +1,7 @@
 import { Entity } from "./entity";
 import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
-import { Animation, AnimationGroup, AssetsManager, Color3, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector2, Vector3 } from "@babylonjs/core";
+import { Animation, AnimationGroup, AssetsManager, Color3, Constants, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector2, Vector3 } from "@babylonjs/core";
 
 
 
@@ -19,6 +19,7 @@ import valkyrieMeshUrl from "../assets/gltf/valkyrie_mesh.glb";
 import projectilesMeshUrl from "../assets/gltf/projectile_mesh.glb";
 import thrusterFlameMeshUrl from "../assets/gltf/thrusterFlame_mesh.glb";
 import vortexMeshUrl from "../assets/gltf/vortex_mesh.glb";
+import { SoundManager } from "./soundmanager";
 
 
 
@@ -26,12 +27,24 @@ export class Valkyrie extends Entity {
 
     static name = "Valkyrie";
 
+    Constants = Object.freeze({
+        ANGULAR_SPEED: 0.1,
+    });
+
     #meshes = {};
     #meshesMats = {};
 
     #keys = {};
     #anim = {};
     #clipLength = 60;
+
+    #angle;
+    //Maybe distance/radius corrolated ?
+    #radius;
+    #distance;
+
+    #lastFire = 0;
+
 
     #explosionParticleSystem;
 
@@ -45,6 +58,11 @@ export class Valkyrie extends Entity {
         this.#meshes.cannons = [];
         this.#meshes.projectiles = [];
         this.#anim.clip = [];
+
+        this.#angle = 0;
+        this.#radius = 0.7;
+        this.#distance = 0.25;
+
     }
 
     async init() {
@@ -53,112 +71,194 @@ export class Valkyrie extends Entity {
         await this.loadMeshes();
         await this.loadAssets();
 
+        this.setMesh(this.#meshes.valkyrie);
         this.#meshesMats.valkyrieShieldColor = new Color3(3.01, 1.72, 0.30);
         this.#meshesMats.raiderShieldColor = new Color3(0.42, 3.27, 3.72);
 
     }
 
+    setAngularPosition() {
+        this.x = this.#radius * Math.cos(this.#angle);
+        this.y = this.#radius * Math.sin(this.#angle);
+        this.z = this.#distance;
+
+        this.transform.rotation.z = this.#angle + Math.PI/2;
+
+        this.updatePosition();
+    }
+
+    update() {
+        super.update();
+
+        if (InputController.inputMap["ArrowLeft"]) {
+            this.#angle -= this.Constants.ANGULAR_SPEED;
+        } else if (InputController.inputMap["ArrowRight"]) {
+            this.#angle += this.Constants.ANGULAR_SPEED;
+
+        }
+        this.setAngularPosition();
+
+        if (InputController.inputMap["Space"]) {
+            this.fireMissiles();
+        }
+
+        //Temporary
+        for (let i = 0; i < this.#meshes.projectiles.length; i++) {
+            let projectile = this.#meshes.projectiles[i];
+
+            projectile.position.z += 0.25;
+            if (projectile.position.z > 15) {
+                projectile.dispose();
+                this.#meshes.projectiles.splice(i, 1);
+                break;
+            }
+            
+        }
+
+    }
+
+    render() {
+        super.render();
+    }
+
+    fireMissiles() {
+        let now = performance.now();
+
+        if (now - this.#lastFire < 42)
+            return;
+
+        this.#lastFire = now;
+        for (let index in this.#meshes.cannons) {
+            let newProjectile = this.#meshes.projectileSource.clone("projectile_" + index);
+            //let newProjectile = this.#meshes.projectileSource.createInstance("projectile_" + index);
+            
+            this.#meshes.projectiles.push(newProjectile);
+
+            newProjectile.parent = this.#meshes.cannons[index];
+            if (newProjectile.parent.name.split("_")[0] === "valkyrie") {
+                newProjectile.material = this.#meshesMats.valkyrieProjectile;
+            } else {
+                newProjectile.material = this.#meshesMats.raiderProjectile;
+            }
+            newProjectile.position.copyFrom(this.#meshes.cannons[index].absolutePosition);
+            
+            newProjectile.parent = null;
+            newProjectile.position.z = Math.random() * 0.025 + ((index % 2) * 0.05) + 0.3;
+            GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(newProjectile);
+            newProjectile.setEnabled(true);
+            
+            SoundManager.playSound(SoundManager.SoundsFX.FIRE);
+        }        
+    }
+
+
+
+
+
+
+
+    /**
+     * UTILS
+     */
+
     async loadMeshes() {
 
-        //VAISSEAU
-        SceneLoader.ImportMesh("", "", valkyrieMeshUrl, GlobalManager.scene, (newMeshes) => {
-            this.#meshes.valkyrie = newMeshes[0];
-            for (let child of newMeshes) {
-                if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
-            }
-            for (let child of newMeshes[1].getChildren()) {
-                if (child.name === "valkyrieShield_mesh") {
-                    this.#meshes.valkyrieShield = child;
-                }
-                if (child.name === "valkyrie_thruster_L1" || child.name === "valkyrie_thruster_L2" || child.name === "valkyrie_thruster_R1" || child.name === "valkyrie_thruster_R2") {
-                    this.#meshes.thrusters.push(child);
-                }
-                if (child.name === "valkyrie_cannon_L" || child.name === "valkyrie_cannon_R") {
-                    this.#meshes.cannons.push(child);
-                }
-            }
-            this.#meshes.valkyrieShield.setEnabled(false);
+        return new Promise((resolve) => {
 
-
-            //PROJECTILES
-            SceneLoader.ImportMesh("", "", projectilesMeshUrl, GlobalManager.scene, (newMeshes) => {
-
-                this.#meshes.projectileSource = newMeshes[1];
+            //VAISSEAU
+            SceneLoader.ImportMesh("", "", valkyrieMeshUrl, GlobalManager.scene, (newMeshes) => {
+                this.#meshes.valkyrie = newMeshes[1];
+                this.#meshes.valkyrie.position = Vector3.Zero();
+                this.#meshes.valkyrie.rotation = Vector3.Zero();
+                
                 for (let child of newMeshes) {
                     if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
                 }
-                this.#meshes.projectileSource.material = this.#meshesMats.projectile;
-                for (let index in this.#meshes.cannons) {
-                    this.#meshes.projectiles.push(this.#meshes.projectileSource.clone("projectile_" + index));
-                    this.#meshes.projectiles[index].parent = this.#meshes.cannons[index];
-                    if (this.#meshes.projectiles[index].parent.name.split("_")[0] === "valkyrie") {
-                        this.#meshes.projectiles[index].material = this.#meshesMats.valkyrieProjectile;
-                    } else {
-                        this.#meshes.projectiles[index].material = this.#meshesMats.raiderProjectile;
+                for (let child of newMeshes[1].getChildren()) {
+                    if (child.name === "valkyrieShield_mesh") {
+                        this.#meshes.valkyrieShield = child;
                     }
-                    this.#meshes.projectiles[index].position.z = Math.random() * 0.025 + ((index % 2) * 0.1) + 0.03;
+                    if (child.name === "valkyrie_thruster_L1" || child.name === "valkyrie_thruster_L2" || child.name === "valkyrie_thruster_R1" || child.name === "valkyrie_thruster_R2") {
+                        this.#meshes.thrusters.push(child);
+                    }
+                    if (child.name === "valkyrie_cannon_L" || child.name === "valkyrie_cannon_R") {
+                        this.#meshes.cannons.push(child);
+                    }
                 }
-                this.#meshes.projectileSource.setEnabled(false);
+                this.#meshes.valkyrieShield.setEnabled(false);
 
 
-                //load thruster mesh
-                SceneLoader.ImportMesh("", "", thrusterFlameMeshUrl, GlobalManager.scene, (newMeshes) => {
-                    this.#meshes.thrusterFlameSource = newMeshes[1];
+                //PROJECTILES
+                SceneLoader.ImportMesh("", "", projectilesMeshUrl, GlobalManager.scene, (newMeshes) => {
+
+                    this.#meshes.projectileSource = newMeshes[1];
                     for (let child of newMeshes) {
                         if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
                     }
-                    for (let index in this.#meshes.thrusters) {
-                        this.#meshes.thrusterFlames.push(this.#meshes.thrusterFlameSource.clone("thrusterFlame_" + index));
-                        this.#meshes.thrusterFlames[index].parent = this.#meshes.thrusters[index];
-                    }
-                    this.#meshes.thrusterFlameSource.setEnabled(false);
-                    for (let index in this.#meshes.thrusterFlames) {
-                        this.#meshes.thrusterFlames[index].material = this.#meshesMats.thrusterFlame.clone("thrusterMat_" + index);
-                        this.#meshes.thrusterFlames[index].material.getBlockByName("rand").value = new Vector2(Math.random(), Math.random());
-                        this.#meshes.thrusterFlames[index].material.getBlockByName("power").value = 0.0;
-                        if (this.#meshes.thrusterFlames[index].parent.name.split("_")[0] === "valkyrie") {
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("coreColor").value = Color3.FromInts(211, 20, 20);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("midColor").value = Color3.FromInts(211, 100, 20);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("sparkColor").value = Color3.FromInts(216, 168, 48);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("afterburnerColor").value = Color3.FromInts(229, 13, 248);
-                        } else {
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("coreColor").value = Color3.FromInts(24, 122, 156);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("midColor").value = Color3.FromInts(49, 225, 230);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("sparkColor").value = Color3.FromInts(48, 216, 167);
-                            this.#meshes.thrusterFlames[index].material.getBlockByName("afterburnerColor").value = Color3.FromInts(13, 248, 168);
-                        }
-                    }
+                    this.#meshes.projectileSource.material = this.#meshesMats.projectile;
+                    this.#meshes.projectileSource.setEnabled(false);                  
 
 
-                    //load vortex mesh
                     //load thruster mesh
-                    SceneLoader.ImportMesh("", "", vortexMeshUrl, GlobalManager.scene, (newMeshes) => {
-                        this.#meshes.vortexSource = newMeshes[1];
+                    SceneLoader.ImportMesh("", "", thrusterFlameMeshUrl, GlobalManager.scene, (newMeshes) => {
+                        this.#meshes.thrusterFlameSource = newMeshes[1];
                         for (let child of newMeshes) {
                             if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
                         }
                         for (let index in this.#meshes.thrusters) {
-                            if (this.#meshes.thrusters[index].name.split("_")[0] === "valkyrie") {
-                                this.#meshes.vortex.push(this.#meshes.vortexSource.clone("vortex_" + index));
-                                this.#meshes.vortex[index].parent = this.#meshes.thrusters[index];
-                            }
+                            this.#meshes.thrusterFlames.push(this.#meshes.thrusterFlameSource.clone("thrusterFlame_" + index));
+                            this.#meshes.thrusterFlames[index].parent = this.#meshes.thrusters[index];
                         }
-                        this.#meshes.vortexSource.setEnabled(true);
-                        for (let index in this.#meshes.vortex) {
-                            this.#meshes.vortex[index].material = this.#meshesMats.vortex.clone("vortexMat_" + index);
-                            this.#meshes.vortex[index].material.getBlockByName("rand").value = new Vector2(Math.random(), Math.random());
-                            this.#meshes.vortex[index].material.getBlockByName("power").value = 0.0;
-                            if (this.#meshes.thrusterFlames[index].parent.name === "valkyrie_thruster_L1" || this.#meshes.thrusterFlames[index].parent.name === "valkyrie_thruster_L2") {
-                                this.#meshes.vortex[index].material.getBlockByName("direction").value = 1;
+                        this.#meshes.thrusterFlameSource.setEnabled(false);
+                        for (let index in this.#meshes.thrusterFlames) {
+                            this.#meshes.thrusterFlames[index].material = this.#meshesMats.thrusterFlame.clone("thrusterMat_" + index);
+                            this.#meshes.thrusterFlames[index].material.getBlockByName("rand").value = new Vector2(Math.random(), Math.random());
+                            this.#meshes.thrusterFlames[index].material.getBlockByName("power").value = 0.0;
+                            if (this.#meshes.thrusterFlames[index].parent.name.split("_")[0] === "valkyrie") {
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("coreColor").value = Color3.FromInts(211, 20, 20);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("midColor").value = Color3.FromInts(211, 100, 20);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("sparkColor").value = Color3.FromInts(216, 168, 48);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("afterburnerColor").value = Color3.FromInts(229, 13, 248);
                             } else {
-                                this.#meshes.vortex[index].material.getBlockByName("direction").value = -1;
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("coreColor").value = Color3.FromInts(24, 122, 156);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("midColor").value = Color3.FromInts(49, 225, 230);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("sparkColor").value = Color3.FromInts(48, 216, 167);
+                                this.#meshes.thrusterFlames[index].material.getBlockByName("afterburnerColor").value = Color3.FromInts(13, 248, 168);
                             }
                         }
 
 
-                        this.initAnimations();
-                        this.enableGlow();
-                        this.playAnim(2);
+                        //load vortex mesh
+                        SceneLoader.ImportMesh("", "", vortexMeshUrl, GlobalManager.scene, (newMeshes) => {
+                            this.#meshes.vortexSource = newMeshes[1];
+                            for (let child of newMeshes) {
+                                if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
+                            }
+                            for (let index in this.#meshes.thrusters) {
+                                if (this.#meshes.thrusters[index].name.split("_")[0] === "valkyrie") {
+                                    this.#meshes.vortex.push(this.#meshes.vortexSource.clone("vortex_" + index));
+                                    this.#meshes.vortex[index].parent = this.#meshes.thrusters[index];
+                                }
+                            }
+                            this.#meshes.vortexSource.setEnabled(false);
+                            for (let index in this.#meshes.vortex) {
+                                this.#meshes.vortex[index].material = this.#meshesMats.vortex.clone("vortexMat_" + index);
+                                this.#meshes.vortex[index].material.getBlockByName("rand").value = new Vector2(Math.random(), Math.random());
+                                this.#meshes.vortex[index].material.getBlockByName("power").value = 0.0;
+                                if (this.#meshes.thrusterFlames[index].parent.name === "valkyrie_thruster_L1" || this.#meshes.thrusterFlames[index].parent.name === "valkyrie_thruster_L2") {
+                                    this.#meshes.vortex[index].material.getBlockByName("direction").value = 1;
+                                } else {
+                                    this.#meshes.vortex[index].material.getBlockByName("direction").value = -1;
+                                }
+                            }
+
+
+                            this.initAnimations();
+                            this.enableGlow();
+                            this.playAnim(2);
+
+                            resolve(true);
+                        });
                     });
                 });
             });
@@ -234,7 +334,7 @@ export class Valkyrie extends Entity {
         this.#meshesMats.decal.alphaMode = 1;
     }
 
-    
+
 
     LoadEntity(
         name,
@@ -299,7 +399,7 @@ export class Valkyrie extends Entity {
         };
     }
 
-    
+
     initAnimations() {
         // set up keys for all animations
         this.#keys.enginesMax = [
@@ -396,9 +496,10 @@ export class Valkyrie extends Entity {
         for (let index in this.#meshes.vortex) {
             GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(this.#meshes.vortex[index]);
         }
-        for (let index in this.#meshes.projectiles) {
+        //GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(this.#meshes.projectileSource);
+        /*for (let index in this.#meshes.projectiles) {
             GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(this.#meshes.projectiles[index]);
-        }
+        }*/
     }
 }
 

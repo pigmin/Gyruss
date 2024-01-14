@@ -46,6 +46,10 @@ class GlobalManager {
 
     }
 
+    update() {
+        
+    }
+
     detroy() {
         
     }

@@ -113,11 +113,11 @@ class Gyruss {
   #creditsUI;
 
   #timeToLaunch = 0;
-  #cameraStartPosition = new Vector3(-257, 566, -620);
-  #cameraMenuPosition = new Vector3(-199, 88, -360);
+  #cameraStartPosition = new Vector3(-25, 56, -62);
+  #cameraMenuPosition = new Vector3(-19, 8, -36);
 
-  #cameraGamePosition = new Vector3(36.01, 127.25, -41.91);
-  #cameraGameTarget = new Vector3(35, 15.71, -5.89);
+  #cameraGamePosition = new Vector3(0, 0.0, -2);
+  #cameraGameTarget = new Vector3(0, 0, 0);
 
   constructor(canvas, engine) {
 
@@ -151,7 +151,7 @@ class Gyruss {
     let env = {};
 
     // standard ArcRotate camera
-    this.#cameras.main = new UniversalCamera("camera", new Vector3(0.0, 0.5, -2), GlobalManager.scene);
+    this.#cameras.main = new UniversalCamera("camera", new Vector3(0.0, 0.0, -2), GlobalManager.scene);
     this.#cameras.main.minZ = 0.001;
     this.#cameras.main.maxZ = 20000;
     this.#cameras.main.wheelDeltaPercentage = 0.1;
@@ -184,6 +184,7 @@ class Gyruss {
     //GlobalManager.shadowGenerator.usePercentageCloserFiltering = true;
     GlobalManager.shadowGenerator.setDarkness(0.4);
 
+    InputController.init();
     await SoundManager.init();
 
     await this.createMaterials();
@@ -304,7 +305,7 @@ class Gyruss {
     keys.push({
       frame: endFrame,
       inTangent: new Vector3(-1, 0, 0),
-      value: this.#cameraGamePosition,
+      value: this.#cameraGamePosition.clone(),
     });
     animationcamera.setKeys(keys);
 
@@ -559,6 +560,9 @@ class Gyruss {
       const now = performance.now();
 
       InputController.update();
+      SoundManager.update();
+      GlobalManager.update();
+
       this.updateAllText();
 
       if (gameState == States.STATE_PRE_INTRO) {
@@ -570,6 +574,13 @@ class Gyruss {
           if (gameState == States.STATE_MENU)
             changeGameState(States.STATE_START_INTRO);
         }
+
+        if (InputController.actions["Enter"]) {
+          if (gameState == States.STATE_MENU)
+            changeGameState(States.STATE_START_GAME
+          );
+        }
+        
       }
       else if (gameState == States.STATE_START_INTRO) {
         //this.#cameras.main.setTarget(this.#cameraGameTarget);
@@ -590,12 +601,11 @@ class Gyruss {
 
       }
       else if (gameState == States.STATE_NEW_LEVEL) {
+        changeGameState(States.STATE_LEVEL_READY);
 
       }
-      else if (gameState == States.STATE_LEVEL_WELDING) {
-        //RAS
-      }
       else if (gameState == States.STATE_LEVEL_READY) {
+        changeGameState(States.STATE_RUNNING);
 
       }
       else if (gameState == States.STATE_LOOSE) {
@@ -616,6 +626,7 @@ class Gyruss {
           changeGameState(States.STATE_PAUSE);
         }
 
+        GlobalManager.valkyrie.update();
 
       }
       else if (gameState == States.STATE_PAUSE) {

@@ -18,6 +18,10 @@ export class Entity {
   ay = 0;
   az = 0;
 
+  rx = 0;
+  ry = 0;
+  rz = 0;
+
   transform;
   gameObject;
 
@@ -29,9 +33,9 @@ export class Entity {
     this.transform.position = new Vector3(this.x, this.y, this.z);
   }
 
-  init(gameObject) {
+  setMesh(gameObject) {
     this.gameObject = gameObject;
-    this.gameObject.setParent(this.transform);
+    this.gameObject.parent = this.transform;
   }
 
   setPosition(x, y, z) {
