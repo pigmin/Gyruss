@@ -1,7 +1,7 @@
 import { Entity } from "./entity";
 import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
-import { AnimationGroup, AssetsManager, Color3, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector3 } from "@babylonjs/core";
+import { Animation, AnimationGroup, AssetsManager, Color3, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector2, Vector3 } from "@babylonjs/core";
 
 
 
