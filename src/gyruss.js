@@ -4,7 +4,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 import { Scene } from "@babylonjs/core/scene";
-import { MeshBuilder, Scalar, StandardMaterial, Color3, Color4, TransformNode, KeyboardEventTypes, DefaultRenderingPipeline, ArcRotateCamera, AssetsManager, ParticleSystem, ShadowGenerator, DirectionalLight, Sound, Animation, Engine, GamepadManager, VideoTexture, BoundingInfo, CubeTexture, SceneLoader, NodeMaterial, UniversalCamera, EasingFunction, SineEase, GlowLayer, AnimationGroup } from "@babylonjs/core";
+import { MeshBuilder, Scalar, StandardMaterial, Color3, Color4, TransformNode, KeyboardEventTypes, DefaultRenderingPipeline, ArcRotateCamera, AssetsManager, ParticleSystem, ShadowGenerator, DirectionalLight, Sound, Animation, Engine, GamepadManager, VideoTexture, BoundingInfo, CubeTexture, SceneLoader, NodeMaterial, UniversalCamera, EasingFunction, SineEase, GlowLayer, AnimationGroup, PointsCloudSystem } from "@babylonjs/core";
 
 
 
@@ -35,6 +35,7 @@ import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
 import {Valkyrie} from "./valkyrie";
 import { SoundManager } from "./soundmanager";
+import StarField from "./starfield";
 
 //const StartButtonMeshTarget = "panel_plate.001_140";
 
@@ -54,8 +55,47 @@ function getRandomInt(max) {
   return Math.round(Math.random() * max);
 }
 
+// 2,750,000,000 miles from home your journey from Neptune to Earth is threatened by 25 stages of attack by the evil Ideoclan Empire (which consists of Exarsions, Petarions, Terarions, Gigarions and - on the bonus stages - Zigmas and Dogmas.)
+/**
+ * Shooting a ship	50, 100 or 150 points.
+Destroying a whole formation of enemy ships before the next wave attacks	1,000, 1,500, 2,000, 2,500 points.
+Bonus for clearing a sector (having not destroyed a whole formation)	1,000 points.
+Shooting the three glowing spheres	1,000, 1,500, 2,000 points.
+Bonus for shooting each ship on the Chance Stage	100 points.
+Bonus for shooting all 40 ships on the Chance Stage	10,000 points.
 
 
+* You can get double fire if you shoot the sun-like enemy that appears in front of you surrounded by two blue pod-like enemies - try to make this a priority.
+
+* To make getting double fire easier, try to stay at the bottom of the screen until the 'pod and sun' formation appears as it will appear right in front of wherever your ship is after all enemies have entered and they start attacking.
+1) There must be at least three enemies left in the level for the 'pod and sun' formation to show. If you lose a life and three enemies are left, the 'pod and sun' will show up one more time, but if you lose a life after that, they will not show any more until the next level. After you get double fire, the sun enemy will be replaced on later levels with another pod. Destroy all three for some bonus points.
+2) If you have only one enemy left and cannot seem to destroy it, just leave it alone and eventually it will just leave and the level will end.
+
+* Each level begins with four formations entering. If you destroy enough of these, a fifth formation will enter. As you pass each planet, more formations will enter towards the top of the screen. Learn to control your ship at the top as it will come in real handy on those Mars and Earth warps.
+
+* When formations enter from the edge of the screen, they will not hit you if you are right where they enter. You can use this to your advantage to take out the formation with little or no trouble - just watch out for asteroids.
+
+* Asteroids will always appear in your path - they cannot be destroyed and must be avoided.
+
+* The 'bee-like' creatures with the force field will always appear from the center and move outward. The force field will destroy your ship if you touch it. Destroy one of the creatures to disable their force field.
+
+* Learn the formations of the enemy attack waves during the normal stages, to enable you to collect the bonuses for destroying whole waves of attacking ships.
+
+* Learn the formations of the enemy attack waves during the chance stages, to enable you to collect the bonuses for destroying whole waves of attackers and the 10,000 for destroying all 40 ships.
+
+* The three glowing spheres always appear aligned with where you are located on screen. Remember to avoid any bullets when they appear.
+
+* You can fire bullets ahead of enemy ships and then move aside to destroy them and avoid their shots.
+
+
+
+Programmer: Toshio Arima
+Designer: Yoshiki Okamoto
+Character: Hideki Ooyami
+Sound: Masahiro Inoue
+
+
+ */
 const States = Object.freeze({
   STATE_NONE: 0,
   STATE_INIT: 10,
@@ -85,6 +125,7 @@ class Gyruss {
   #gameScene;
   #assetsManager;
   #glowLayer;
+  #starFieldManager;
 
   #camera;
   #light;
@@ -190,6 +231,9 @@ class Gyruss {
     await this.createMaterials();
     await this.loadMeshes();
     await this.loadAssets();
+
+    this.#starFieldManager = new StarField();
+    this.#starFieldManager.setEnabled(true);
 
     GlobalManager.valkyrie = new Valkyrie(0, -0.25, 0.25);
     await GlobalManager.valkyrie.init();
@@ -562,6 +606,7 @@ class Gyruss {
       InputController.update();
       SoundManager.update();
       GlobalManager.update();
+      this.#starFieldManager.update();
 
       this.updateAllText();
 
