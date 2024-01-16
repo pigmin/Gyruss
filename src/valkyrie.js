@@ -45,12 +45,16 @@ export class Valkyrie extends Entity {
 
     #lastFire = 0;
 
+    #launchPosition;
+
 
     #explosionParticleSystem;
 
     constructor(x, y, z) {
 
         super(x, y, z);
+
+        this.#launchPosition = new Vector3(x, y, z);
 
         this.#meshes.thrusters = [];
         this.#meshes.thrusterFlames = [];
@@ -59,7 +63,7 @@ export class Valkyrie extends Entity {
         this.#meshes.projectiles = [];
         this.#anim.clip = [];
 
-        this.#angle = 0;
+        this.#angle = -Math.PI/2;
         this.#radius = 0.7;
         this.#distance = 0.25;
 
@@ -75,6 +79,10 @@ export class Valkyrie extends Entity {
         this.#meshesMats.valkyrieShieldColor = new Color3(3.01, 1.72, 0.30);
         this.#meshesMats.raiderShieldColor = new Color3(0.42, 3.27, 3.72);
 
+    }
+
+    getGameStartPosition() {
+        return new Vector3(this.#radius * Math.cos(this.#angle), this.#radius * Math.sin(this.#angle), this.#distance);
     }
 
     setAngularPosition() {
@@ -160,6 +168,35 @@ export class Valkyrie extends Entity {
     /**
      * UTILS
      */
+    launchGameStartAnimation(callback) {
+
+        const startFrame = 0;
+        const endFrame = 300;
+        const frameRate = 60;
+    
+        var animation = new Animation(
+          "GameStartAnimation",
+          "position",
+          frameRate,
+          Animation.ANIMATIONTYPE_VECTOR3,
+          Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        var keys = [];
+        keys.push({
+          frame: startFrame,
+          value: this.#launchPosition,
+          //outTangent: new Vector3(1, 0, 0)
+        });
+        keys.push({
+          frame: endFrame,
+          //inTangent: new Vector3(-1, 0, 0),
+          value: this.getGameStartPosition(),
+        });
+        animation.setKeys(keys);
+    
+        //VALKYRIE
+        GlobalManager.scene.beginDirectAnimation(this.transform, [animation], startFrame, endFrame, false, 1, callback);
+      }
 
     async loadMeshes() {
 

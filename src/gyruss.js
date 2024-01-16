@@ -4,7 +4,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 import { Scene } from "@babylonjs/core/scene";
-import { MeshBuilder, Scalar, StandardMaterial, Color3, Color4, TransformNode, KeyboardEventTypes, DefaultRenderingPipeline, ArcRotateCamera, AssetsManager, ParticleSystem, ShadowGenerator, DirectionalLight, Sound, Animation, Engine, GamepadManager, VideoTexture, BoundingInfo, CubeTexture, SceneLoader, NodeMaterial, UniversalCamera, EasingFunction, SineEase, GlowLayer, AnimationGroup, PointsCloudSystem } from "@babylonjs/core";
+import { MeshBuilder, Scalar, StandardMaterial, Color3, Color4, TransformNode, KeyboardEventTypes, DefaultRenderingPipeline, ArcRotateCamera, AssetsManager, ParticleSystem, ShadowGenerator, DirectionalLight, Sound, Animation, Engine, GamepadManager, VideoTexture, BoundingInfo, CubeTexture, SceneLoader, NodeMaterial, UniversalCamera, EasingFunction, SineEase, GlowLayer, AnimationGroup, PointsCloudSystem, FlyCamera } from "@babylonjs/core";
 
 
 
@@ -154,8 +154,11 @@ class Gyruss {
   #creditsUI;
 
   #timeToLaunch = 0;
-  #cameraStartPosition = new Vector3(-25, 56, -62);
-  #cameraMenuPosition = new Vector3(-19, 8, -36);
+  #cameraStartPosition = new Vector3(0.035, -0.235, 0.12);
+  #cameraStartTarget = new Vector3(0.035, -0.235, 0.5);
+
+  #cameraMenuPosition = new Vector3(0.035, -0.235, -0.12);
+  #cameraMenuTarget = new Vector3(0.035, -0.235, 0.5);
 
   #cameraGamePosition = new Vector3(0, 0.0, -2);
   #cameraGameTarget = new Vector3(0, 0, 0);
@@ -192,15 +195,16 @@ class Gyruss {
     let env = {};
 
     // standard ArcRotate camera
-    this.#cameras.main = new UniversalCamera("camera", new Vector3(0.0, 0.0, -2), GlobalManager.scene);
+    this.#cameras.main = new UniversalCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
+//    this.#cameras.main = new FlyCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
     this.#cameras.main.minZ = 0.001;
     this.#cameras.main.maxZ = 20000;
     this.#cameras.main.wheelDeltaPercentage = 0.1;
-    this.#cameras.main.setTarget(new Vector3(0, 0, 0));
-    //this.#cameras.main.attachControl(GlobalManager.canvas, false);
+    //this.#cameras.main.position = this.#cameraStartPosition;
+    this.#cameras.main.setTarget(this.#cameraStartTarget);
+    //this.#cameras.main.attachControl(GlobalManager.canvas, true);
 
     // This targets the camera to scene origin
-    //this.gotoMenuCamera();
     // This attaches the camera to the canvas
     //this.#cameras.main.attachControl(GlobalManager.canvas, true);
 
@@ -253,14 +257,14 @@ class Gyruss {
 
     //this.#meshes.valkyrie.position = new Vector3(0, -0.5, 0.0);
 
-    changeGameState(States.STATE_PRE_INTRO);
+    //changeGameState(States.STATE_PRE_INTRO);
     this.launchCreditsAnimation(() => {
       this.#creditsUI.rootContainer.isVisible = false;
       SoundManager.playMusic(SoundManager.Musics.START_MUSIC);
     });
-    //this.launchPreIntroAnimation(() => {
-    changeGameState(States.STATE_MENU);
-    //});
+    this.launchPreIntroAnimation(() => {
+      changeGameState(States.STATE_MENU);
+    });
 
 
   }
@@ -282,7 +286,7 @@ class Gyruss {
     keys.push({
       frame: startFrame,
       value: this.#cameras.main.position.clone(),
-      outTangent: new Vector3(1, 0, 0)
+      //outTangent: new Vector3(1, 0, 0)
     });
     keys.push({
       frame: endFrame / 2,
@@ -290,7 +294,7 @@ class Gyruss {
     });
     keys.push({
       frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
+      //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraMenuPosition,
     });
     animationcamera.setKeys(keys);
@@ -307,12 +311,12 @@ class Gyruss {
     keysTarget.push({
       frame: startFrame,
       value: this.#cameras.main.target.clone(),
-      outTangent: new Vector3(1, 0, 0)
+      //outTangent: new Vector3(1, 0, 0)
     });
     keysTarget.push({
       frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
-      value: this.getTargetMenuPosition().clone(),
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraMenuTarget
     });
     animationcameraTarget.setKeys(keysTarget);
 
@@ -339,17 +343,13 @@ class Gyruss {
     var keys = [];
     keys.push({
       frame: startFrame,
-      value: this.#cameras.main.position.clone(),
-      outTangent: new Vector3(1, 0, 0)
-    });
-    keys.push({
-      frame: endFrame / 2,
-      value: new Vector3(39, 177, -550),
+      value: this.#cameraMenuPosition,
+      //outTangent: new Vector3(1, 0, 0)
     });
     keys.push({
       frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
-      value: this.#cameraGamePosition.clone(),
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGamePosition,
     });
     animationcamera.setKeys(keys);
 
@@ -364,23 +364,23 @@ class Gyruss {
     var keysTarget = [];
     keysTarget.push({
       frame: startFrame,
-      value: this.#cameras.main.target.clone(),
-      outTangent: new Vector3(1, 0, 0)
+      value: this.#cameraMenuTarget,
+      //outTangent: new Vector3(1, 0, 0)
     });
     keysTarget.push({
       frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
+      //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraGameTarget,
     });
 
     animationcameraTarget.setKeys(keysTarget);
 
-
-
     this.#cameras.main.animations = [];
     this.#cameras.main.animations.push(animationcamera);
     this.#cameras.main.animations.push(animationcameraTarget);
 
+    //VALKYRIE
+    GlobalManager.valkyrie.launchGameStartAnimation();
     GlobalManager.scene.beginAnimation(this.#cameras.main, startFrame, endFrame, false, 1, callback);
   }
 
@@ -403,47 +403,16 @@ class Gyruss {
     keys.push({
       frame: startFrame,
       value: this.#cameraStartPosition,
-      outTangent: new Vector3(1, 0, 0)
-    });
-    keys.push({
-      frame: endFrame / 3,
-      value: new Vector3(39, 177, -550),
-    });
-    keys.push({
-      frame: 2 * endFrame / 3,
-      inTangent: new Vector3(-1, 0, 0),
-      value: new Vector3(240, 107, -353),
-    });
+      //outTangent: new Vector3(1, 0, 0)
+    });    
     keys.push({
       frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
+      //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraMenuPosition,
     });
     animationcamera.setKeys(keys);
 
-    //------------------TARGET
-    var animationcameraTarget = new Animation(
-      "PreIntroAnimationTarget",
-      "target",
-      frameRate,
-      Animation.ANIMATIONTYPE_VECTOR3,
-      Animation.ANIMATIONLOOPMODE_CONSTANT
-    );
-    var keysTarget = [];
-    keysTarget.push({
-      frame: startFrame,
-      value: this.#cameras.main.target.clone(),
-      outTangent: new Vector3(1, 0, 0)
-    });
-    keysTarget.push({
-      frame: endFrame,
-      inTangent: new Vector3(-1, 0, 0),
-      value: this.getTargetMenuPosition().clone(),
-    });
-
-    animationcameraTarget.setKeys(keysTarget);
-
-
+    
     this.#cameras.main.animations = [];
     this.#cameras.main.animations.push(animationcamera);
 
@@ -620,11 +589,6 @@ class Gyruss {
             changeGameState(States.STATE_START_INTRO);
         }
 
-        if (InputController.actions["Enter"]) {
-          if (gameState == States.STATE_MENU)
-            changeGameState(States.STATE_START_GAME
-          );
-        }
         
       }
       else if (gameState == States.STATE_START_INTRO) {
@@ -793,19 +757,6 @@ class Gyruss {
   hideGUI() {
     this.#menuUiTexture.rootContainer.isVisible = false;
   }
-  gotoMenuCamera() {
-    this.#cameras.main.position = this.#cameraMenuPosition.clone();
-    let target = this.getTargetMenuPosition();
-    if (target)
-      this.#cameras.main.setTarget();
-  }
-  getTargetMenuPosition() {
-    let guiParent = GlobalManager.scene.getNodeByName(constants.START_BUTTON_MESH_TARGET);
-    if (guiParent)
-      return guiParent.getAbsolutePosition();
-    else
-      return null;
-  }
 
   gotoGameCamera() {
     this.#cameras.main.position = this.#cameraGamePosition.clone();
@@ -838,7 +789,6 @@ class Gyruss {
         changeGameState(States.STATE_START_INTRO);
     });
     this.#menuUiTexture.addControl(button1);
-    this.gotoMenuCamera();
     this.showGUI();
 
   }
