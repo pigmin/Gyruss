@@ -46,6 +46,7 @@ let currentHighScore = 0;
 let currentLevel = 1;
 
 
+
 let gameState;
 function changeGameState(newState) {
   gameState = newState;
@@ -764,7 +765,7 @@ class Gyruss {
     this.#cameras.main.setTarget(this.#cameraGameTarget);
   }
 
-  loadMenuGUI() {
+  loadMenuGUI() {/*
     // GUI
     let guiParent = GlobalManager.scene.getNodeByName(constants.START_BUTTON_MESH_TARGET);
     this.#cameras.main.setTarget(guiParent.getAbsolutePosition());
@@ -791,7 +792,7 @@ class Gyruss {
     });
     this.#menuUiTexture.addControl(button1);
     this.showGUI();
-
+*/
   }
 
   loadGameUI() {
