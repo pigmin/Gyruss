@@ -7,6 +7,7 @@ class GlobalManager {
     #canvas;
     #engine;
     #currentScene;
+    #activeCamera;
     
     glowLayer;
     shadowGenerator;
@@ -31,6 +32,14 @@ class GlobalManager {
     set scene(currentScene) {
         if (currentScene)
             this.#currentScene = currentScene;
+    }
+
+    set activeCamera(camera) {
+        this.#activeCamera = camera;
+    }
+
+    get activeCamera() {
+        return this.#activeCamera;
     }
 
 

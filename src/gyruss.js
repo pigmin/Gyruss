@@ -213,6 +213,7 @@ class Gyruss {
     env.lighting.rotationY = 1.977;
     GlobalManager.scene.environmentTexture = env.lighting;
     GlobalManager.scene.environmentIntensity = 1;
+    GlobalManager.activeCamera = this.#cameras.main;
 
 
     // directional light needed for shadows
