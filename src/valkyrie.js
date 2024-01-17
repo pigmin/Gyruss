@@ -1,7 +1,7 @@
 import { Entity } from "./entity";
 import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
-import { Animation, AnimationGroup, AssetsManager, Color3, Constants, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector2, Vector3 } from "@babylonjs/core";
+import { Animation, AnimationGroup, AssetsManager, Color3, EasingFunction, NodeMaterial, ParticleSystem, SceneLoader, SineEase, Vector2, Vector3 } from "@babylonjs/core";
 
 
 
@@ -21,15 +21,11 @@ import thrusterFlameMeshUrl from "../assets/gltf/thrusterFlame_mesh.glb";
 import vortexMeshUrl from "../assets/gltf/vortex_mesh.glb";
 import { SoundManager } from "./soundmanager";
 
-
+import * as constants from "./constants";
 
 export class Valkyrie extends Entity {
 
     static name = "Valkyrie";
-
-    Constants = Object.freeze({
-        ANGULAR_SPEED: 0.1,
-    });
 
     #meshes = {};
     #meshesMats = {};
@@ -65,7 +61,7 @@ export class Valkyrie extends Entity {
 
         this.#angle = -Math.PI/2;
         this.#radius = 0.7;
-        this.#distance = 0.25;
+        this.#distance = (constants.GAME_BASE_Z + 0.25);
 
     }
 
@@ -99,9 +95,9 @@ export class Valkyrie extends Entity {
         super.update();
 
         if (InputController.inputMap["ArrowLeft"]) {
-            this.#angle -= this.Constants.ANGULAR_SPEED;
+            this.#angle -= constants.ANGULAR_SPEED;
         } else if (InputController.inputMap["ArrowRight"]) {
-            this.#angle += this.Constants.ANGULAR_SPEED;
+            this.#angle += constants.ANGULAR_SPEED;
 
         }
         this.setAngularPosition();
@@ -151,7 +147,7 @@ export class Valkyrie extends Entity {
             newProjectile.position.copyFrom(this.#meshes.cannons[index].absolutePosition);
             
             newProjectile.parent = null;
-            newProjectile.position.z = Math.random() * 0.025 + ((index % 2) * 0.05) + 0.3;
+            newProjectile.position.z = constants.GAME_BASE_Z + (Math.random() * 0.025 + ((index % 2) * 0.05) + 0.3);
             GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(newProjectile);
             newProjectile.setEnabled(true);
             
@@ -205,13 +201,17 @@ export class Valkyrie extends Entity {
             //VAISSEAU
             SceneLoader.ImportMesh("", "", valkyrieMeshUrl, GlobalManager.scene, (newMeshes) => {
                 this.#meshes.valkyrie = newMeshes[1];
+                this.#meshes.valkyrie.name = "valkyrie";
                 this.#meshes.valkyrie.position = Vector3.Zero();
                 this.#meshes.valkyrie.rotation = Vector3.Zero();
                 
                 for (let child of newMeshes) {
                     if (child.material != undefined && child.material.name === "lambert1") child.material.dispose();
                 }
-                for (let child of newMeshes[1].getChildren()) {
+                newMeshes[1].setParent(null);
+                newMeshes[0].dispose();
+
+                  for (let child of newMeshes[1].getChildren()) {
                     if (child.name === "valkyrieShield_mesh") {
                         this.#meshes.valkyrieShield = child;
                     }
@@ -421,12 +421,13 @@ export class Valkyrie extends Entity {
                 meshArray[entity_number].rotation = Vector3.Zero();
             }
 
-            if (bAddToShadows)
-                GlobalManager.shadowGenerator.addShadowCaster(parent);
-            parent.receiveShadows = true;
-            for (let mesh of parent.getChildMeshes()) {
-                mesh.receiveShadows = true;
-                mesh.computeWorldMatrix(true);
+            if (bAddToShadows) {
+                GlobalManager.shadowGenerator.addShadowCaster(parent, true);
+                parent.receiveShadows = true;
+                for (let mesh of parent.getChildMeshes()) {
+                    mesh.receiveShadows = true;
+                    mesh.computeWorldMatrix(true);
+                }
             }
             if (callback)
                 callback(meshArray[entity_number]);

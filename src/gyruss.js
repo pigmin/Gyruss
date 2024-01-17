@@ -4,36 +4,34 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 import { Scene } from "@babylonjs/core/scene";
-import { MeshBuilder, Scalar, StandardMaterial, Color3, Color4, TransformNode, KeyboardEventTypes, DefaultRenderingPipeline, ArcRotateCamera, AssetsManager, ParticleSystem, ShadowGenerator, DirectionalLight, Sound, Animation, Engine, GamepadManager, VideoTexture, BoundingInfo, CubeTexture, SceneLoader, NodeMaterial, UniversalCamera, EasingFunction, SineEase, GlowLayer, AnimationGroup, PointsCloudSystem, FlyCamera } from "@babylonjs/core";
+import { Color3, AssetsManager, ShadowGenerator, DirectionalLight, Animation, Engine, CubeTexture, UniversalCamera, GlowLayer, ArcRotateCamera, FlyCamera, SpotLight, Texture, VolumetricLightScatteringPostProcess, Constants } from "@babylonjs/core";
 
 
 
 import { Inspector } from '@babylonjs/inspector';
-import { TrailMesh } from '@babylonjs/core/Meshes/trailMesh';
 
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import { GridMaterial } from "@babylonjs/materials/grid/gridMaterial";
 import "@babylonjs/core/Materials/standardMaterial";
 import "@babylonjs/core/Debug/debugLayer"; // Augments the scene with the debug methods
 import "@babylonjs/inspector"; // Injects a local ES6 version of the inspector to prevent automatically relying on the none compatible version
 import "@babylonjs/loaders/glTF";
 
 
+import environmentModelUrl from "../assets/gltf/graffiti_on_a_wall_-_low_poly.glb";
+import cabinetModelUrl from "../assets/gltf/arcade machine gyruss.glb";
+import lightModelUrl from "../assets/gltf/work_light.glb";
 
+import workLightAnimUrl from "../assets/animations/worklight.json";
 
+import sunTexture2Url from "../assets/textures/sun.png";
 
 import envfileUrl from "../assets/env/environment.env";
-import starFieldGlb from "../assets/gltf/starsGeo.glb";
-import starFieldPanoramaTextureUrl from "../assets/textures/starfield_panorama_texture.jpg";
-
-import starFieldShaderUrl from "../assets/shaders/starfieldShader.json";
 import { AdvancedDynamicTexture, Button, Control, TextBlock } from "@babylonjs/gui";
 
 
 import * as constants from "./constants";
 import { GlobalManager } from "./globalmanager";
 import { InputController } from "./inputcontroller";
-import {Valkyrie} from "./valkyrie";
+import { Valkyrie } from "./valkyrie";
 import { SoundManager } from "./soundmanager";
 import StarField from "./starfield";
 
@@ -143,6 +141,10 @@ class Gyruss {
   #lights = {};
   #cameras = {};
 
+
+  #workLightAnim;
+  #workLightMesh;
+
   #glow = {};
 
   #keys = {};
@@ -155,29 +157,30 @@ class Gyruss {
   #creditsUI;
 
   #timeToLaunch = 0;
-  #cameraStartPosition = new Vector3(0.035, -0.235, 0.12);
-  #cameraStartTarget = new Vector3(0.035, -0.235, 0.5);
+  #cameraStartPosition = new Vector3(-0.05, 7.76, -29.8);
+  #cameraStartTarget = new Vector3(0.05, -0.235, 0.5);
 
-  #cameraMenuPosition = new Vector3(0.035, -0.235, -0.12);
-  #cameraMenuTarget = new Vector3(0.035, -0.235, 0.5);
+  #cameraMenuPosition = new Vector3(0.035, 1.75, -5.75);
+  #cameraMenuTarget = new Vector3(0.035, 0.0, 0.5);
 
-  #cameraGamePosition = new Vector3(0, 0.0, -2);
-  #cameraGameTarget = new Vector3(0, 0, 0);
+  #cameraGameMidPosition = new Vector3(0, 0.0, -3);
+  #cameraGameMidTarget = new Vector3(0, 0, 0);   
+
+  #cameraGamePosition = new Vector3(0, 0.0, 5);
+  #cameraGameTarget = new Vector3(0, 0, 7);   
 
   constructor(canvas, engine) {
 
     GlobalManager.setup(canvas, engine);
 
-    this.#meshes.starField = null;
-
   }
 
   async start() {
-    
+
     await this.init();
     //this.loadMenuGUI();
     this.loadGameUI();
-//    this.starField();
+
     this.loop();
     this.end();
   }
@@ -196,14 +199,14 @@ class Gyruss {
     let env = {};
 
     // standard ArcRotate camera
-    this.#cameras.main = new UniversalCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
-//    this.#cameras.main = new FlyCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
+    //this.#cameras.main = new UniversalCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
+        this.#cameras.main = new FlyCamera("camera", this.#cameraStartPosition, GlobalManager.scene);
     this.#cameras.main.minZ = 0.001;
     this.#cameras.main.maxZ = 20000;
     this.#cameras.main.wheelDeltaPercentage = 0.1;
     //this.#cameras.main.position = this.#cameraStartPosition;
     this.#cameras.main.setTarget(this.#cameraStartTarget);
-    //this.#cameras.main.attachControl(GlobalManager.canvas, true);
+    this.#cameras.main.attachControl(GlobalManager.canvas, true);
 
     // This targets the camera to scene origin
     // This attaches the camera to the canvas
@@ -213,20 +216,51 @@ class Gyruss {
     env.lighting.gammaSpace = false;
     env.lighting.rotationY = 1.977;
     GlobalManager.scene.environmentTexture = env.lighting;
-    GlobalManager.scene.environmentIntensity = 1;
+    GlobalManager.scene.environmentIntensity = .05;
     GlobalManager.activeCamera = this.#cameras.main;
 
 
     // directional light needed for shadows
-    this.#lights.dirLight = new DirectionalLight("dirLight", new Vector3(0.47, -0.19, -0.86), GlobalManager.scene);
-    this.#lights.dirLight.position = new Vector3(0, 0.05, 0);
+    this.#lights.spotLight = new SpotLight("spotLight", new Vector3(-0.11, 3.37, -0.87), new Vector3(0.0, -0.8, -1), Math.PI / 2, 1, GlobalManager.scene);
+    //this.#lights.spotLight.position = new Vector3(-0.11, 3.37, -0.87);
+    this.#lights.spotLight.diffuse = Color3.FromInts(255, 251, 199);
+    this.#lights.spotLight.intensity = 50;
+    this.#lights.spotLight.shadowMinZ = 0.5;
+    this.#lights.spotLight.shadowMaxZ = 200;
+
+    this.#lights.workLight = new SpotLight("workLight", new Vector3(-9.34, -5.37, -2.51), new Vector3(0.97, 0.21, 0.14), Math.PI, 0.2, GlobalManager.scene);
+    
+    this.#lights.workLight.diffuse = new Color3(255, 251, 59);
+    this.#lights.workLight.intensity = 10;
+    this.#lights.workLight.shadowMinZ = 0.1;
+    this.#lights.workLight.shadowMaxZ = 200;
+/*
+LATER USE FOR GAME AND SUN EFFECTS
+
+      // Create the "God Rays" effect (volumetric light scattering)
+    var godrays = new VolumetricLightScatteringPostProcess('godrays', 1.0, GlobalManager.activeCamera, null, 100, Texture.BILINEAR_SAMPLINGMODE, GlobalManager.engine, false);
+
+    // By default it uses a billboard to render the sun, just apply the desired texture
+    // position and scale
+    godrays.mesh.material.diffuseTexture = new Texture(sunTexture2Url, GlobalManager.scene, true, false, Texture.BILINEAR_SAMPLINGMODE);
+    godrays.mesh.material.diffuseTexture.hasAlpha = true;
+    godrays.mesh.position = new Vector3(-0.11, 3.43, -0.31);
+    godrays.mesh.scaling = new Vector3(4, 1, 1);*/
+
+    //light.position = godrays.mesh.position;
+
+    //For game phase enabled laer
+    this.#lights.dirLight = new DirectionalLight("dirLight", new Vector3(0.2, -0.5, -1), GlobalManager.scene);
+    this.#lights.dirLight.position = new Vector3(-0.28, 3.78, -0.98);
     this.#lights.dirLight.diffuse = Color3.FromInts(255, 251, 199);
     this.#lights.dirLight.intensity = 3;
     this.#lights.dirLight.shadowMinZ = 3.5;
     this.#lights.dirLight.shadowMaxZ = 12;
+    //Shut down for intro phase
+    this.#lights.dirLight.intensity = 0;
 
 
-    GlobalManager.shadowGenerator = new ShadowGenerator(512, this.#lights.dirLight);
+    GlobalManager.shadowGenerator = new ShadowGenerator(512, this.#lights.workLight);
     //GlobalManager.shadowGenerator.useExponentialShadowMap = true;
     //GlobalManager.shadowGenerator.usePercentageCloserFiltering = true;
     GlobalManager.shadowGenerator.setDarkness(0.4);
@@ -239,13 +273,13 @@ class Gyruss {
     await this.loadAssets();
 
     this.#starFieldManager = new StarField();
-    this.#starFieldManager.setEnabled(true);
+    await this.#starFieldManager.init();
 
-    GlobalManager.valkyrie = new Valkyrie(0, -0.25, 0.25);
+    GlobalManager.valkyrie = new Valkyrie(0, -0.25, (constants.GAME_BASE_Z - 4.75));
     await GlobalManager.valkyrie.init();
 
 
-    
+
     /*  this.#musics[1] = new Sound("music1", musicUrl2, GlobalManager.scene, null, { loop: true, autoplay: false });
       this.#musics[2] = new Sound("music2", musicUrl3, GlobalManager.scene, null, { loop: true, autoplay: false });
       this.#musics[3] = new Sound("music3", musicUrl4, GlobalManager.scene, null, { loop: true, autoplay: false });
@@ -265,6 +299,8 @@ class Gyruss {
       SoundManager.playMusic(SoundManager.Musics.START_MUSIC);
     });
     this.launchPreIntroAnimation(() => {
+      //Stop blink anim
+      this.#workLightAnim.stop();                  
       changeGameState(States.STATE_MENU);
     });
 
@@ -349,6 +385,17 @@ class Gyruss {
       //outTangent: new Vector3(1, 0, 0)
     });
     keys.push({
+      frame: endFrame/2,
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGameMidPosition,
+    });    
+    keys.push({
+      frame: 2*endFrame/3,
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGameMidPosition,
+    });
+
+    keys.push({
       frame: endFrame,
       //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraGamePosition,
@@ -370,6 +417,11 @@ class Gyruss {
       //outTangent: new Vector3(1, 0, 0)
     });
     keysTarget.push({
+      frame: endFrame/2,
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGameMidTarget,
+    });    
+    keysTarget.push({
       frame: endFrame,
       //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraGameTarget,
@@ -390,7 +442,7 @@ class Gyruss {
 
     const frameRate = 60;
     const startFrame = 0;
-    const endFrame = 500;
+    const endFrame = 900;
 
     var animationcamera = new Animation(
       "PreIntroAnimation",
@@ -406,6 +458,11 @@ class Gyruss {
       frame: startFrame,
       value: this.#cameraStartPosition,
       //outTangent: new Vector3(1, 0, 0)
+    });
+    keys.push({
+      frame: endFrame/3 ,
+      value: this.#cameraStartPosition,
+      //outTangent: new Vector3(1, 0, 0)
     });    
     keys.push({
       frame: endFrame,
@@ -414,11 +471,12 @@ class Gyruss {
     });
     animationcamera.setKeys(keys);
 
-    
+
     this.#cameras.main.animations = [];
     this.#cameras.main.animations.push(animationcamera);
 
     GlobalManager.scene.beginAnimation(this.#cameras.main, startFrame, endFrame, false, 1, callback);
+    this.#workLightAnim = GlobalManager.scene.beginAnimation(this.#lights.workLight, 0, 200, true, 1);
   }
 
 
@@ -506,28 +564,67 @@ class Gyruss {
   }
 
   async loadMeshes() {
-    //starfield
-    SceneLoader.ImportMesh("", "", starFieldGlb, GlobalManager.scene, (newMeshes) => {
-      this.#meshes.starfield = newMeshes[1];
-      this.#meshes.starfield.scaling = new Vector3(4500, 4500, 4500);
-      this.#meshes.starfield.material = this.#meshesMats.starfield;
-    });
-
 
   }
 
   loadAssets() {
     return new Promise((resolve) => {
 
-/*
-
-      // Asset manager for loading texture and particle system
       this.#assetsManager = new AssetsManager(GlobalManager.scene);
-      const particleTexture = this.#assetsManager.addTextureTask("explosion texture", particleExplosionTextureUrl)
-      const particleExplosion = this.#assetsManager.addTextFileTask("explosion", particleExplosionUrl);
-      const fireSoundData = this.#assetsManager.addBinaryFileTask("fireSound", fireSoundUrl);
+
+      const workLightAnimation = this.#assetsManager.addTextFileTask("workLight", workLightAnimUrl);
+
+     // let animations = await BABYLON.Animation.ParseFromFileAsync(null, "https://blakeone.github.io/animations.json");
+      
+      this.LoadEntity(
+        "environment",
+        "",
+        "",
+        environmentModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        0,
+        { position: new Vector3(5, -6, 1.48), scaling: new Vector3(15, 15, -15) , rotation: new Vector3(0, Math.PI/2,0)},
+        GlobalManager.scene,
+        GlobalManager.shadowGenerator,
+        (mesh) => {
+          mesh.freezeWorldMatrix();
+        }
+      );
+
+      this.LoadEntity(
+        "cabinet",
+        "",
+        "",
+        cabinetModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        1,
+        { position: new Vector3(-2.4, -7.20, -1.1), scaling: new Vector3(1, 1, -1) },
+        GlobalManager.scene,
+        GlobalManager.shadowGenerator,
+        (mesh) => {
+          mesh.freezeWorldMatrix();
+        }
+      );
 
 
+      this.LoadEntity(
+        "worklight",
+        "",
+        "",
+        lightModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        2,
+        { position: new Vector3(-9.32, -6.95, -2.55), scaling: new Vector3(8, 8, -8) },
+        GlobalManager.scene,
+        GlobalManager.shadowGenerator,
+        (mesh) => {
+          mesh.rotation.y = -1.9;
+          mesh.freezeWorldMatrix();
+        }
+      );
 
 
       // load all tasks
@@ -538,33 +635,19 @@ class Gyruss {
         console.log("tasks successful", tasks);
 
         // prepare to parse particle system files
-        const particleJSON = JSON.parse(particleExplosion.text);
-        explosionParticleSystem = ParticleSystem.Parse(particleJSON, GlobalManager.scene, "", true);
-
-        // set particle texture
-        explosionParticleSystem.particleTexture = particleTexture.texture;
-        explosionParticleSystem.emitter = new Vector3(0, 0, 0);
-
-
-        soundsRepo[SoundsFX.FIRE] = new Sound("fireSound", fireSoundData.data, GlobalManager.scene);
-
-
-
+        const worklightAnimJson = JSON.parse(workLightAnimation.text);
+        this.#lights.workLight.animations = [];
+        this.#lights.workLight.animations.push(Animation.Parse(worklightAnimJson.animations[0]));
+      
+        
         resolve(true);
       }
-*/
-    resolve(true);
+
     });
-
-
   }
 
   async createMaterials() {
-    this.#meshesMats.starfieldTex = new Texture(starFieldPanoramaTextureUrl, GlobalManager.scene, false, false);
-    this.#meshesMats.starfield = new NodeMaterial("starfieldMat", GlobalManager.scene, { emitComments: false });
-    await this.#meshesMats.starfield.loadAsync(starFieldShaderUrl);
-    this.#meshesMats.starfield.build(false);
-    this.#meshesMats.starfield.getBlockByName("emissiveTex").texture = this.#meshesMats.starfieldTex;
+
   }
 
   loop() {
@@ -587,15 +670,18 @@ class Gyruss {
       else if (gameState == States.STATE_MENU) {
 
         if (InputController.actions["Space"]) {
-          if (gameState == States.STATE_MENU)
+          if (gameState == States.STATE_MENU) {
+
             changeGameState(States.STATE_START_INTRO);
+          }
         }
 
-        
+
       }
       else if (gameState == States.STATE_START_INTRO) {
         //this.#cameras.main.setTarget(this.#cameraGameTarget);
         changeGameState(States.STATE_INTRO);
+        this.#starFieldManager.setEnabled(true);
         this.launchGameStartAnimation(() => {
           Engine.audioEngine.unlock();
           this.showGameUI(true);
@@ -609,7 +695,7 @@ class Gyruss {
         changeGameState(States.STATE_NEW_LEVEL);
       }
       else if (gameState == States.STATE_LAUNCH) {
-
+          
       }
       else if (gameState == States.STATE_NEW_LEVEL) {
         changeGameState(States.STATE_LEVEL_READY);
@@ -651,7 +737,7 @@ class Gyruss {
       //Render : (auto)
 
       //Debug
-      if (InputController.actions["KeyD"]) {
+      if (InputController.actions["KeyI"]) {
         this.#bInspector = !this.#bInspector;
         if (this.#bInspector) {
           Inspector.Show(GlobalManager.scene, { embedMode: true });
@@ -736,12 +822,13 @@ class Gyruss {
         meshArray[entity_number].rotation = Vector3.Zero();
       }
 
-      if (shadowGenerator)
-        shadowGenerator.addShadowCaster(parent);
-      parent.receiveShadows = true;
-      for (let mesh of parent.getChildMeshes()) {
-        mesh.receiveShadows = true;
-        mesh.computeWorldMatrix(true);
+      if (shadowGenerator) {
+        shadowGenerator.addShadowCaster(parent, true);
+        parent.receiveShadows = true;
+        for (let mesh of parent.getChildMeshes()) {
+          mesh.receiveShadows = true;
+          mesh.computeWorldMatrix(true);
+        }
       }
       if (callback)
         callback(meshArray[entity_number]);
