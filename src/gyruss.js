@@ -685,6 +685,7 @@ LATER USE FOR GAME AND SUN EFFECTS
         this.launchGameStartAnimation(() => {
           Engine.audioEngine.unlock();
           this.showGameUI(true);
+          SoundManager.playMusic(SoundManager.Musics.LEVEL1_MUSIC);
           changeGameState(States.STATE_START_GAME);
         });
       }
