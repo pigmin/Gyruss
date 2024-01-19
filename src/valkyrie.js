@@ -110,8 +110,8 @@ export class Valkyrie extends Entity {
         for (let i = 0; i < this.#meshes.projectiles.length; i++) {
             let projectile = this.#meshes.projectiles[i];
 
-            projectile.position.z += 0.25;
-            if (projectile.position.z > 15) {
+            projectile.position.z += 0.35;
+            if (projectile.position.z > 50) {
                 projectile.dispose();
                 this.#meshes.projectiles.splice(i, 1);
                 break;
@@ -128,7 +128,7 @@ export class Valkyrie extends Entity {
     fireMissiles() {
         let now = performance.now();
 
-        if (now - this.#lastFire < 42)
+        if (now - this.#lastFire < 84)
             return;
 
         this.#lastFire = now;
@@ -148,6 +148,7 @@ export class Valkyrie extends Entity {
             
             newProjectile.parent = null;
             newProjectile.position.z = constants.GAME_BASE_Z + (Math.random() * 0.025 + ((index % 2) * 0.05) + 0.3);
+            //newProjectile.lookAt(Vector3.Zero());
             GlobalManager.glowLayer.referenceMeshToUseItsOwnMaterial(newProjectile);
             newProjectile.setEnabled(true);
             

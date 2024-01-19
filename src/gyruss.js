@@ -4,7 +4,7 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector2, Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 import { Scene } from "@babylonjs/core/scene";
-import { Color3, AssetsManager, ShadowGenerator, DirectionalLight, Animation, Engine, CubeTexture, UniversalCamera, GlowLayer, ArcRotateCamera, FlyCamera, SpotLight, Texture, VolumetricLightScatteringPostProcess, Constants } from "@babylonjs/core";
+import { Color3, AssetsManager, ShadowGenerator, DirectionalLight, Animation, Engine, CubeTexture, UniversalCamera, GlowLayer, ArcRotateCamera, FlyCamera, SpotLight, Texture, VolumetricLightScatteringPostProcess, Constants, VideoTexture, MeshBuilder, StandardMaterial } from "@babylonjs/core";
 
 
 
@@ -19,11 +19,14 @@ import "@babylonjs/loaders/glTF";
 import environmentModelUrl from "../assets/gltf/graffiti_on_a_wall_-_low_poly.glb";
 import cabinetModelUrl from "../assets/gltf/arcade machine gyruss.glb";
 import lightModelUrl from "../assets/gltf/work_light.glb";
+import playNeonModelUrl from "../assets/gltf/play_neon2.glb";
+import electricityModelUrl from "../assets/gltf/a_soviet_electricity_meter.glb";
+
 
 import workLightAnimUrl from "../assets/animations/worklight.json";
 
 import sunTexture2Url from "../assets/textures/sun.png";
-
+import screenVideoTextureUrl from "../assets/textures/Gyruss _ arcade attract mode auto demo _ 1983 -NOSOUND.mp4";
 import envfileUrl from "../assets/env/environment.env";
 import { AdvancedDynamicTexture, Button, Control, TextBlock } from "@babylonjs/gui";
 
@@ -126,9 +129,6 @@ class Gyruss {
   #glowLayer;
   #starFieldManager;
 
-  #camera;
-  #light;
-  #musics = [];
   #bPause;
 
   #ground;
@@ -143,8 +143,7 @@ class Gyruss {
 
 
   #workLightAnim;
-  #workLightMesh;
-
+  
   #glow = {};
 
   #keys = {};
@@ -160,7 +159,7 @@ class Gyruss {
   #cameraStartPosition = new Vector3(-0.05, 7.76, -29.8);
   #cameraStartTarget = new Vector3(0.05, -0.235, 0.5);
 
-  #cameraMenuPosition = new Vector3(0.035, 1.75, -5.75);
+  #cameraMenuPosition = new Vector3(0.035, 1.98, -6.72);
   #cameraMenuTarget = new Vector3(0.035, 0.0, 0.5);
 
   #cameraGameMidPosition = new Vector3(0, 0.0, -3);
@@ -221,19 +220,21 @@ class Gyruss {
 
 
     // directional light needed for shadows
-    this.#lights.spotLight = new SpotLight("spotLight", new Vector3(-0.11, 3.37, -0.87), new Vector3(0.0, -0.8, -1), Math.PI / 2, 1, GlobalManager.scene);
-    //this.#lights.spotLight.position = new Vector3(-0.11, 3.37, -0.87);
-    this.#lights.spotLight.diffuse = Color3.FromInts(255, 251, 199);
-    this.#lights.spotLight.intensity = 50;
+    this.#lights.spotLight = new SpotLight("spotLight", new Vector3(-0.11, 3.37, -0.87), new Vector3(0.0, -0.8, -1), Math.PI/2, 18, GlobalManager.scene);
     this.#lights.spotLight.shadowMinZ = 0.5;
     this.#lights.spotLight.shadowMaxZ = 200;
+    //this.#lights.spotLight.position = new Vector3(-0.11, 3.37, -0.87);
+    this.#lights.spotLight.diffuse = Color3.FromInts(255, 251, 199);    
+    this.#lights.spotLight.intensity = 60;
 
-    this.#lights.workLight = new SpotLight("workLight", new Vector3(-9.34, -5.37, -2.51), new Vector3(0.97, 0.21, 0.14), Math.PI, 0.2, GlobalManager.scene);
+
+    this.#lights.workLight = new SpotLight("workLight", new Vector3(-10.18, -5.77, -2.68), new Vector3(0.97, 0.21, 0.14), 2*Math.PI/3, 10, GlobalManager.scene);
+    this.#lights.workLight.shadowMinZ = 1;
+    this.#lights.workLight.shadowMaxZ = 200;
+    //this.#lights.workLight = new DirectionalLight("workLight", new Vector3(0.97, 0.21, 0.14), GlobalManager.scene);
     
     this.#lights.workLight.diffuse = new Color3(255, 251, 59);
-    this.#lights.workLight.intensity = 10;
-    this.#lights.workLight.shadowMinZ = 0.1;
-    this.#lights.workLight.shadowMaxZ = 200;
+    this.#lights.workLight.intensity = 12;
 /*
 LATER USE FOR GAME AND SUN EFFECTS
 
@@ -254,16 +255,18 @@ LATER USE FOR GAME AND SUN EFFECTS
     this.#lights.dirLight.position = new Vector3(-0.28, 3.78, -0.98);
     this.#lights.dirLight.diffuse = Color3.FromInts(255, 251, 199);
     this.#lights.dirLight.intensity = 3;
-    this.#lights.dirLight.shadowMinZ = 3.5;
-    this.#lights.dirLight.shadowMaxZ = 12;
     //Shut down for intro phase
     this.#lights.dirLight.intensity = 0;
-
-
-    GlobalManager.shadowGenerator = new ShadowGenerator(512, this.#lights.workLight);
-    //GlobalManager.shadowGenerator.useExponentialShadowMap = true;
-    //GlobalManager.shadowGenerator.usePercentageCloserFiltering = true;
-    GlobalManager.shadowGenerator.setDarkness(0.4);
+    
+    GlobalManager.shadowGenerator = new ShadowGenerator(1024, this.#lights.workLight);
+    GlobalManager.shadowGenerator.useBlurExponentialShadowMap = true;
+    GlobalManager.shadowGenerator.frustumEdgeFalloff = 1.0;
+    //GlobalManager.shadowGenerator.setDarkness(0.6);
+    
+    GlobalManager.shadowGenerator2 = new ShadowGenerator(1024, this.#lights.spotLight);
+    GlobalManager.shadowGenerator2.useBlurExponentialShadowMap = true;
+    GlobalManager.shadowGenerator2.frustumEdgeFalloff = 1.0;
+    //GlobalManager.shadowGenerator2.setDarkness(0.6);
 
     InputController.init();
     await SoundManager.init();
@@ -271,6 +274,32 @@ LATER USE FOR GAME AND SUN EFFECTS
     await this.createMaterials();
     await this.loadMeshes();
     await this.loadAssets();
+
+
+    //SHADOWS TEST 
+/*    let mat = new StandardMaterial("mat");
+
+    var ground = MeshBuilder.CreateGround("ground", {width: 100, height: 100, subdivisions: 24});
+    ground.position = new Vector3(0, -5.95, 0);
+    ground.material = mat;
+    ground.receiveShadows = true;
+
+    let c = MeshBuilder.CreateBox("box", {size : 5});
+    c.material = mat;
+    GlobalManager.shadowGenerator.addShadowCaster(c);
+    GlobalManager.shadowGenerator2.addShadowCaster(c);
+    c.receiveShadows = true;
+
+
+    let c2 = MeshBuilder.CreateBox("box", {size : 5});
+    c2.material = mat;
+    GlobalManager.shadowGenerator.addShadowCaster(c2);
+    GlobalManager.shadowGenerator2.addShadowCaster(c2);
+    c2.receiveShadows = true;
+    c2.position = new Vector3(6.58, -5.44, -2.65);
+    // FIN TEST
+*/
+
 
     this.#starFieldManager = new StarField();
     await this.#starFieldManager.init();
@@ -586,9 +615,10 @@ LATER USE FOR GAME AND SUN EFFECTS
         0,
         { position: new Vector3(5, -6, 1.48), scaling: new Vector3(15, 15, -15) , rotation: new Vector3(0, Math.PI/2,0)},
         GlobalManager.scene,
-        GlobalManager.shadowGenerator,
+        true,
         (mesh) => {
           mesh.freezeWorldMatrix();
+          mesh.convertToFlatShadedMesh();
         }
       );
 
@@ -602,8 +632,14 @@ LATER USE FOR GAME AND SUN EFFECTS
         1,
         { position: new Vector3(-2.4, -7.20, -1.1), scaling: new Vector3(1, 1, -1) },
         GlobalManager.scene,
-        GlobalManager.shadowGenerator,
+        true,
         (mesh) => {
+          let screenMat = GlobalManager.scene.getMaterialByName("Screen");
+          //screenMat.emissiveTexture = null;
+          screenMat.albedoColor = new Color3(0, 0, 0);
+          screenMat.emissiveColor = new Color3(0.6, 0.6, 0.65);
+//          screenMat.emissiveTexture = new VideoTexture("vidtex", screenVideoTextureUrl, GlobalManager.scene);
+
           mesh.freezeWorldMatrix();
         }
       );
@@ -617,15 +653,54 @@ LATER USE FOR GAME AND SUN EFFECTS
         this.#assetsManager,
         this.#meshes,
         2,
-        { position: new Vector3(-9.32, -6.95, -2.55), scaling: new Vector3(8, 8, -8) },
+        { position: new Vector3(-9.19, -6.95, -2.94), scaling: new Vector3(8, 8, -8) },
         GlobalManager.scene,
-        GlobalManager.shadowGenerator,
+        true,
         (mesh) => {
           mesh.rotation.y = -1.9;
           mesh.freezeWorldMatrix();
         }
-      );
+      );    
 
+      this.LoadEntity(
+        "playNeon",
+        "",
+        "",
+        playNeonModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        3,
+        { position: new Vector3(13.77, 5.13, 3.92), scaling: new Vector3(1, -1, 1) },
+        GlobalManager.scene,
+        null,
+        (mesh) => {
+          let neonMat = GlobalManager.scene.getMaterialByName("lambert15SG.001");
+          //screenMat.emissiveTexture = null;
+          //neonMat.albedoColor = new Color3(0, 0, 0);
+          neonMat.emissiveColor = new Color3(1.0, 1.0, 1.0);
+
+          mesh.rotation.y = 0.05;
+          mesh.freezeWorldMatrix();
+        }
+      );
+      
+      this.LoadEntity(
+        "electricity",
+        "",
+        "",
+        electricityModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        4,
+        { position: new Vector3(9.65, 3.23, 1.91), scaling: new Vector3(1, 1, -1) },
+        GlobalManager.scene,
+        true,
+        (mesh) => {
+          //mesh.rotation.y = -1.9;
+          mesh.freezeWorldMatrix();
+        }
+      );
+      
 
       // load all tasks
       this.#assetsManager.load();
@@ -785,7 +860,7 @@ LATER USE FOR GAME AND SUN EFFECTS
     entity_number,
     props,
     scene,
-    shadowGenerator,
+    bEnableShadows,
     callback
   ) {
     const meshTask = manager.addMeshTask(name, meshNameToLoad, url, file);
@@ -823,14 +898,23 @@ LATER USE FOR GAME AND SUN EFFECTS
         meshArray[entity_number].rotation = Vector3.Zero();
       }
 
-      if (shadowGenerator) {
-        shadowGenerator.addShadowCaster(parent, true);
+      if (bEnableShadows) {
+        GlobalManager.shadowGenerator.addShadowCaster(parent, true);
+        GlobalManager.shadowGenerator2.addShadowCaster(parent, true);
         parent.receiveShadows = true;
         for (let mesh of parent.getChildMeshes()) {
+          let mat = mesh.material;
+          //Turn off because it breaks shadows
+          mat.usePhysicalLightFalloff = false;
           mesh.receiveShadows = true;
           mesh.computeWorldMatrix(true);
+          //GlobalManager.shadowGenerator.addShadowCaster(mesh);
+          //GlobalManager.shadowGenerator2.addShadowCaster(mesh);
         }
       }
+      else
+        parent.computeWorldMatrix(true);
+
       if (callback)
         callback(meshArray[entity_number]);
     };
