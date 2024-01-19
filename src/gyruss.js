@@ -21,6 +21,8 @@ import cabinetModelUrl from "../assets/gltf/arcade machine gyruss.glb";
 import lightModelUrl from "../assets/gltf/work_light.glb";
 import playNeonModelUrl from "../assets/gltf/play_neon2.glb";
 import electricityModelUrl from "../assets/gltf/a_soviet_electricity_meter.glb";
+import spaceInvadersModelUrl from "../assets/gltf/arcade_game_-_space_invaders.glb";
+import oldComputerModelUrl from "../assets/gltf/old_rusty_computer.glb";
 
 
 import workLightAnimUrl from "../assets/animations/worklight.json";
@@ -647,13 +649,30 @@ LATER USE FOR GAME AND SUN EFFECTS
 
 
       this.LoadEntity(
+        "spaceInvavers",
+        "",
+        "",
+        spaceInvadersModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        2,
+        { position: new Vector3(6.81, -6.76, -18.13), scaling: new Vector3(7, 7, -7) },
+        GlobalManager.scene,
+        true,
+        (mesh) => {
+          mesh.freezeWorldMatrix();
+        }
+      );
+
+
+      this.LoadEntity(
         "worklight",
         "",
         "",
         lightModelUrl,
         this.#assetsManager,
         this.#meshes,
-        2,
+        3,
         { position: new Vector3(-9.19, -6.95, -2.94), scaling: new Vector3(8, 8, -8) },
         GlobalManager.scene,
         true,
@@ -670,7 +689,7 @@ LATER USE FOR GAME AND SUN EFFECTS
         playNeonModelUrl,
         this.#assetsManager,
         this.#meshes,
-        3,
+        4,
         { position: new Vector3(13.77, 5.13, 3.92), scaling: new Vector3(1, -1, 1) },
         GlobalManager.scene,
         null,
@@ -692,7 +711,7 @@ LATER USE FOR GAME AND SUN EFFECTS
         electricityModelUrl,
         this.#assetsManager,
         this.#meshes,
-        4,
+        5,
         { position: new Vector3(9.65, 3.23, 1.91), scaling: new Vector3(1, 1, -1) },
         GlobalManager.scene,
         true,
