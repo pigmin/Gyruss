@@ -228,7 +228,7 @@ class Gyruss {
     this.#lights.spotLight.intensity = 60;
 
 
-    this.#lights.workLight = new SpotLight("workLight", new Vector3(-10.18, -5.77, -2.68), new Vector3(0.97, 0.21, 0.14), 2*Math.PI/3, 10, GlobalManager.scene);
+    this.#lights.workLight = new SpotLight("workLight", new Vector3(-10.18, -5.77, -2.68), new Vector3(0.97, 0.21, 0.14), 2*Math.PI/3, 5, GlobalManager.scene);
     this.#lights.workLight.shadowMinZ = 1;
     this.#lights.workLight.shadowMaxZ = 200;
     //this.#lights.workLight = new DirectionalLight("workLight", new Vector3(0.97, 0.21, 0.14), GlobalManager.scene);
@@ -261,12 +261,13 @@ LATER USE FOR GAME AND SUN EFFECTS
     GlobalManager.shadowGenerator = new ShadowGenerator(1024, this.#lights.workLight);
     GlobalManager.shadowGenerator.useBlurExponentialShadowMap = true;
     GlobalManager.shadowGenerator.frustumEdgeFalloff = 1.0;
-    //GlobalManager.shadowGenerator.setDarkness(0.6);
+    GlobalManager.shadowGenerator.setDarkness(0.0);
     
     GlobalManager.shadowGenerator2 = new ShadowGenerator(1024, this.#lights.spotLight);
-    GlobalManager.shadowGenerator2.useBlurExponentialShadowMap = true;
-    GlobalManager.shadowGenerator2.frustumEdgeFalloff = 1.0;
-    //GlobalManager.shadowGenerator2.setDarkness(0.6);
+    GlobalManager.shadowGenerator2.bias = 0.00001;
+    GlobalManager.shadowGenerator2.normalBias = 0.01;
+    GlobalManager.shadowGenerator2.usePercentageCloserFiltering  = true;
+    GlobalManager.shadowGenerator2.setDarkness(0.0);
 
     InputController.init();
     await SoundManager.init();
