@@ -227,7 +227,7 @@ class Gyruss {
     this.#lights.spotLight.shadowMaxZ = 200;
     //this.#lights.spotLight.position = new Vector3(-0.11, 3.37, -0.87);
     this.#lights.spotLight.diffuse = Color3.FromInts(255, 251, 199);    
-    this.#lights.spotLight.intensity = 60;
+    this.#lights.spotLight.intensity = 100;
 
 
     this.#lights.workLight = new SpotLight("workLight", new Vector3(-10.18, -5.77, -2.68), new Vector3(0.97, 0.21, 0.14), 2*Math.PI/3, 5, GlobalManager.scene);
@@ -332,7 +332,9 @@ LATER USE FOR GAME AND SUN EFFECTS
     });
     this.launchPreIntroAnimation(() => {
       //Stop blink anim
-      this.#workLightAnim.stop();                  
+      this.#workLightAnim.stop();
+      //Light intensity
+      this.#lights.workLight.intensity = 0.0;
       changeGameState(States.STATE_MENU);
     });
 
@@ -621,7 +623,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         true,
         (mesh) => {
           mesh.freezeWorldMatrix();
-          mesh.convertToFlatShadedMesh();
         }
       );
 
@@ -721,6 +722,22 @@ LATER USE FOR GAME AND SUN EFFECTS
         }
       );
       
+
+      this.LoadEntity(
+        "oldComputer",
+        "",
+        "",
+        oldComputerModelUrl,
+        this.#assetsManager,
+        this.#meshes,
+        2,
+        { position: new Vector3(-13.34, -6.23, -1.39), scaling: new Vector3(.6, .6, -.6) },
+        GlobalManager.scene,
+        true,
+        (mesh) => {
+          mesh.freezeWorldMatrix();
+        }
+      );
 
       // load all tasks
       this.#assetsManager.load();
