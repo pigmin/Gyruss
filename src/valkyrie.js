@@ -381,7 +381,6 @@ export class Valkyrie extends Entity {
         file,
         manager,
         meshArray,
-        entity_number,
         props,
         scene,
         bAddToShadows,
@@ -397,29 +396,29 @@ export class Valkyrie extends Entity {
                   obj.setParent(null);
                   parent.dispose();*/
 
-            meshArray[entity_number] = parent;
+            meshArray.push(parent);
 
             if (props) {
                 if (props.scaling) {
-                    meshArray[entity_number].scaling.copyFrom(props.scaling);
+                    parent.scaling.copyFrom(props.scaling);
                 }
                 if (props.position) {
-                    meshArray[entity_number].position.copyFrom(props.position);
+                    parent.position.copyFrom(props.position);
                 }
                 else
-                    meshArray[entity_number].position = Vector3.Zero();
+                    parent.position = Vector3.Zero();
 
                 if (props.rotation) {
-                    meshArray[entity_number].rotationQuaternion = null;
-                    meshArray[entity_number].rotation.copyFrom(props.rotation);
+                    parent.rotationQuaternion = null;
+                    parent.rotation.copyFrom(props.rotation);
                 }
                 else
-                    meshArray[entity_number].rotation = Vector3.Zero();
+                    parent.rotation = Vector3.Zero();
 
             }
             else {
-                meshArray[entity_number].position = Vector3.Zero();
-                meshArray[entity_number].rotation = Vector3.Zero();
+                parent.position = Vector3.Zero();
+                parent.rotation = Vector3.Zero();
             }
 
             if (bAddToShadows) {
@@ -431,7 +430,7 @@ export class Valkyrie extends Entity {
                 }
             }
             if (callback)
-                callback(meshArray[entity_number]);
+                callback(parent);
         };
         meshTask.onError = function (e) {
             console.log(e);

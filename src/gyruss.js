@@ -138,7 +138,7 @@ class Gyruss {
   inputController;
   #bInspector = false;
 
-  #meshes = {};
+  #meshes = [];
   #meshesMats = {};
   #lights = {};
   #cameras = {};
@@ -161,7 +161,7 @@ class Gyruss {
   #cameraStartPosition = new Vector3(-0.05, 7.76, -29.8);
   #cameraStartTarget = new Vector3(0.05, -0.235, 0.5);
 
-  #cameraMenuPosition = new Vector3(0.035, 1.98, -6.72);
+  #cameraMenuPosition = new Vector3(0.035, 2, -6.72);
   #cameraMenuTarget = new Vector3(0.035, 0.0, 0.5);
 
   #cameraGameMidPosition = new Vector3(0, 0.0, -3);
@@ -226,7 +226,7 @@ class Gyruss {
     this.#lights.spotLight.shadowMinZ = 0.5;
     this.#lights.spotLight.shadowMaxZ = 200;
     //this.#lights.spotLight.position = new Vector3(-0.11, 3.37, -0.87);
-    this.#lights.spotLight.diffuse = Color3.FromInts(255, 251, 199);    
+    this.#lights.spotLight.diffuse = Color3.FromInts(250, 250, 255);    
     this.#lights.spotLight.intensity = 100;
 
 
@@ -235,7 +235,7 @@ class Gyruss {
     this.#lights.workLight.shadowMaxZ = 200;
     //this.#lights.workLight = new DirectionalLight("workLight", new Vector3(0.97, 0.21, 0.14), GlobalManager.scene);
     
-    this.#lights.workLight.diffuse = new Color3(255, 251, 59);
+    this.#lights.workLight.diffuse = new Color3(255, 250, 60);
     this.#lights.workLight.intensity = 12;
 /*
 LATER USE FOR GAME AND SUN EFFECTS
@@ -357,17 +357,18 @@ LATER USE FOR GAME AND SUN EFFECTS
     var keys = [];
     keys.push({
       frame: startFrame,
-      value: this.#cameras.main.position.clone(),
+      value: this.#cameraGamePosition
       //outTangent: new Vector3(1, 0, 0)
     });
     keys.push({
-      frame: endFrame / 2,
-      value: new Vector3(39, 177, -550),
-    });
+      frame: endFrame/2,
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGameMidPosition,
+    });    
     keys.push({
       frame: endFrame,
-      //inTangent: new Vector3(-1, 0, 0),
       value: this.#cameraMenuPosition,
+      //outTangent: new Vector3(1, 0, 0)
     });
     animationcamera.setKeys(keys);
 
@@ -382,14 +383,20 @@ LATER USE FOR GAME AND SUN EFFECTS
     var keysTarget = [];
     keysTarget.push({
       frame: startFrame,
-      value: this.#cameras.main.target.clone(),
-      //outTangent: new Vector3(1, 0, 0)
+      //inTangent: new Vector3(-1, 0, 0),
+      value: this.#cameraGameTarget,
     });
     keysTarget.push({
-      frame: endFrame,
+      frame: endFrame/2,
       //inTangent: new Vector3(-1, 0, 0),
-      value: this.#cameraMenuTarget
+      value: this.#cameraGameMidTarget,
+    });    
+    keysTarget.push({
+      frame: endFrame,
+      value: this.#cameraMenuTarget,
+      //outTangent: new Vector3(1, 0, 0)
     });
+
     animationcameraTarget.setKeys(keysTarget);
 
     this.#cameras.main.animations = [];
@@ -617,7 +624,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         environmentModelUrl,
         this.#assetsManager,
         this.#meshes,
-        0,
         { position: new Vector3(5, -6, 1.48), scaling: new Vector3(15, 15, -15) , rotation: new Vector3(0, Math.PI/2,0)},
         GlobalManager.scene,
         true,
@@ -633,7 +639,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         cabinetModelUrl,
         this.#assetsManager,
         this.#meshes,
-        1,
         { position: new Vector3(-2.4, -7.20, -1.1), scaling: new Vector3(1, 1, -1) },
         GlobalManager.scene,
         true,
@@ -656,7 +661,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         spaceInvadersModelUrl,
         this.#assetsManager,
         this.#meshes,
-        2,
         { position: new Vector3(6.81, -6.76, -18.13), scaling: new Vector3(7, 7, -7) },
         GlobalManager.scene,
         true,
@@ -673,7 +677,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         lightModelUrl,
         this.#assetsManager,
         this.#meshes,
-        3,
         { position: new Vector3(-9.19, -6.95, -2.94), scaling: new Vector3(8, 8, -8) },
         GlobalManager.scene,
         true,
@@ -690,7 +693,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         playNeonModelUrl,
         this.#assetsManager,
         this.#meshes,
-        4,
         { position: new Vector3(13.77, 5.13, 3.92), scaling: new Vector3(1, -1, 1) },
         GlobalManager.scene,
         null,
@@ -712,7 +714,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         electricityModelUrl,
         this.#assetsManager,
         this.#meshes,
-        5,
         { position: new Vector3(9.65, 3.23, 1.91), scaling: new Vector3(1, 1, -1) },
         GlobalManager.scene,
         true,
@@ -730,7 +731,6 @@ LATER USE FOR GAME AND SUN EFFECTS
         oldComputerModelUrl,
         this.#assetsManager,
         this.#meshes,
-        2,
         { position: new Vector3(-13.34, -6.23, -1.39), scaling: new Vector3(.6, .6, -.6) },
         GlobalManager.scene,
         true,
@@ -760,6 +760,14 @@ LATER USE FOR GAME AND SUN EFFECTS
 
   async createMaterials() {
 
+  }
+
+  showEnvironment(bVisible) {
+
+    for (let idx = 0; idx < this.#meshes.length; idx++) {
+      let mesh = this.#meshes[idx];
+      mesh.setEnabled(bVisible);
+    }
   }
 
   loop() {
@@ -795,6 +803,7 @@ LATER USE FOR GAME AND SUN EFFECTS
         changeGameState(States.STATE_INTRO);
         this.#starFieldManager.setEnabled(true);
         this.launchGameStartAnimation(() => {
+          this.showEnvironment(false);
           Engine.audioEngine.unlock();
           this.showGameUI(true);
           SoundManager.playMusic(SoundManager.Musics.LEVEL1_MUSIC);
@@ -820,10 +829,13 @@ LATER USE FOR GAME AND SUN EFFECTS
       }
       else if (gameState == States.STATE_LOOSE) {
 
+        changeGameState(States.STATE_GAME_OVER);
       }
       else if (gameState == States.STATE_GAME_OVER) {
 
         this.launchGameOverAnimation(() => {
+          this.#starFieldManager.setEnabled(false);
+          this.showEnvironment(true);
           changeGameState(States.STATE_MENU);
         });
       }
@@ -831,6 +843,10 @@ LATER USE FOR GAME AND SUN EFFECTS
 
 
         //SPECIAL CONTROLS 
+        if (InputController.actions["Escape"]) {
+          changeGameState(States.STATE_GAME_OVER);
+        }
+
         if (InputController.actions["KeyP"]) {
           this.#bPause = true;
           changeGameState(States.STATE_PAUSE);
@@ -894,7 +910,6 @@ LATER USE FOR GAME AND SUN EFFECTS
     file,
     manager,
     meshArray,
-    entity_number,
     props,
     scene,
     bEnableShadows,
@@ -910,29 +925,29 @@ LATER USE FOR GAME AND SUN EFFECTS
             obj.setParent(null);
             parent.dispose();*/
 
-      meshArray[entity_number] = parent;
+      meshArray.push(parent);
 
       if (props) {
         if (props.scaling) {
-          meshArray[entity_number].scaling.copyFrom(props.scaling);
+          parent.scaling.copyFrom(props.scaling);
         }
         if (props.position) {
-          meshArray[entity_number].position.copyFrom(props.position);
+          parent.position.copyFrom(props.position);
         }
         else
-          meshArray[entity_number].position = Vector3.Zero();
+          parent.position = Vector3.Zero();
 
         if (props.rotation) {
-          meshArray[entity_number].rotationQuaternion = null;
-          meshArray[entity_number].rotation.copyFrom(props.rotation);
+          parent.rotationQuaternion = null;
+          parent.rotation.copyFrom(props.rotation);
         }
         else
-          meshArray[entity_number].rotation = Vector3.Zero();
+          parent.rotation = Vector3.Zero();
 
       }
       else {
-        meshArray[entity_number].position = Vector3.Zero();
-        meshArray[entity_number].rotation = Vector3.Zero();
+        parent.position = Vector3.Zero();
+        parent.rotation = Vector3.Zero();
       }
 
       if (bEnableShadows) {
@@ -953,7 +968,7 @@ LATER USE FOR GAME AND SUN EFFECTS
         parent.computeWorldMatrix(true);
 
       if (callback)
-        callback(meshArray[entity_number]);
+        callback(parent);
     };
     meshTask.onError = function (e) {
       console.log(e);
